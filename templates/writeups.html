@@ -2,8 +2,14 @@
 
 {% block content %}
 <div class="jumbotron">
-    <div class="container text-center">
-        <h1>Writeups</h1>
+    <div class="container">
+        <h1 class="display-4 fw-bold mb-3 slide-up">
+            <i class="fas fa-file-signature text-primary me-3"></i>
+            Writeups
+        </h1>
+        <p class="lead mb-4 slide-up" style="animation-delay: 0.1s;">
+            Share your solutions and learn from other players' writeups for challenges you've solved.
+        </p>
     </div>
 </div>
 
@@ -14,7 +20,7 @@
             
             <div class="nav flex-column nav-pills" id="challenge-list" role="tablist" aria-orientation="vertical">
                 {% for chal in challenges %}
-                <a class="nav-link chal-btn font-weight-bold" style="cursor: pointer;" data-id="{{ chal.id }}" data-name="{{ chal.name }}">
+                <a class="nav-link chal-btn fw-bold" style="cursor: pointer;" data-id="{{ chal.id }}" data-name="{{ chal.name }}">
                     {{ chal.name }}
                 </a>
                 {% else %}
@@ -36,14 +42,14 @@
                 <h2 class="border-bottom pb-2 mb-4" id="workspace-title">Challenge Name</h2>
                 
                 <div class="mb-5 pb-4 border-bottom">
-                    <select id="solution-viewer-select" class="form-control custom-select mb-3">
+                    <select id="solution-viewer-select" class="form-select mb-3">
                     </select>
                     <pre id="solution-viewer-code" class="form-control" style="display: none; height: auto; max-height: 400px; padding: 15px; white-space: pre-wrap; word-break: break-all; font-family: monospace; overflow-y: auto;"></pre>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-end mb-3">
                     <h4 class="mb-0" id="editor-title">Share your writeup</h4>
-                    <small id="char-count" class="text-muted font-weight-bold">0 / 50,000</small>
+                    <small id="char-count" class="text-muted fw-bold">0 / 50,000</small>
                 </div>
                 
                 <textarea id="solution-code" class="form-control mb-3" rows="8" 
@@ -51,10 +57,10 @@
                           style="font-family: monospace;" 
                           maxlength="50000"></textarea>
                 
-                <button id="submit-solution-btn" class="btn btn-primary float-right px-4">Submit</button>
-                <button id="delete-solution-btn" class="btn btn-danger float-right px-4 mr-2" style="display: none;">Delete</button>
-                
-                <span id="solution-status" class="float-right mr-3 mt-2 font-weight-bold" style="display: none;"></span>
+                <button id="submit-solution-btn" class="btn btn-primary float-end px-4">Submit</button>
+                <button id="delete-solution-btn" class="btn btn-danger float-end px-4 me-2" style="display: none;">Delete</button>
+
+                <span id="solution-status" class="float-end me-3 mt-2 fw-bold" style="display: none;"></span>
                 <div class="clearfix"></div>
                 
             </div>
@@ -97,14 +103,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function rebuildDropdown(currentUserId) {
         let myCode = "";
-        let optionsHtml = '<option value="">-- Select a player to view their writeup --</option>';
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = '-- Select a player to view their writeup --';
+        selectMenu.replaceChildren(placeholderOption);
         
         loadedSolutions.forEach(s => {
             if (s.user_id === currentUserId) myCode = s.code;
-            optionsHtml += `<option value="${s.user_id}">${s.user_name} (${s.submitted_at})</option>`;
+            // Player names are user-supplied; set them as text, not markup
+            const option = document.createElement('option');
+            option.value = s.user_id;
+            option.textContent = `${s.user_name} (${s.submitted_at})`;
+            selectMenu.appendChild(option);
         });
-
-        selectMenu.innerHTML = optionsHtml;
         textarea.value = myCode;
         updateCharCounter();
         
