@@ -1,10 +1,8 @@
-import threading
-
 from flask import Blueprint, abort, jsonify, render_template, request
 
-from CTFd.cache import cache
 from CTFd.models import Challenges, Solves
 from CTFd.plugins import register_admin_plugin_menu_bar, register_user_page_menu_bar
+from CTFd.plugins.background_sync import register_sync_hook
 from CTFd.utils import get_config
 from CTFd.utils.decorators import admins_only, authed_only
 from CTFd.utils.user import authed, get_current_team, get_current_user, is_admin
@@ -45,7 +43,7 @@ def load(app):
         try:
             wwriteups.sync()
             print(
-                "[bloodwriteupss plugin] initial sync completed successfully on startup!"
+                "[writeups plugin] initial sync completed successfully on startup!"
             )
         except Exception as e:
             print(f"[writeups plugin] initial sync (during startup) error: {e}")
@@ -231,44 +229,6 @@ def load(app):
     register_user_page_menu_bar("Writeups", "/writeups")
 
     # trigger cleanup when challenges, users, teams, or solutions are modified
-    @app.after_request
-    def trigger_writeups_cleanup(response):
-        if request.method in ["POST", "PATCH", "DELETE"]:
-            # check if the path matches any endpoint that requires a sync
-            endpoints = [
-                "/api/v1/challenges",
-                "/api/v1/users",
-                "/api/v1/teams",
-                "/api/v1/solves",
-                "/api/v1/submissions",
-            ]
-
-            if not any(request.path.startswith(ep) for ep in endpoints):
-                return response
-
-            # check debounce
-            if cache.get("writeups_sync_lock"):
-                return response
-
-            # set debounce
-            cache.set("writeups_sync_lock", True, timeout=5)
-
-            # run the sync in a background thread so it doesn't block the request
-            app_ctx = app.app_context()
-
-            def run_sync_thread(ctx):
-                with ctx:
-                    try:
-                        wwriteups.sync()
-                    except Exception as e:
-                        print(f"[writeups plugin] sync error: {e}")
-                        cache.delete(
-                            "writeups_sync_lock"
-                        )  # it can be helpful to release the debounce, as the sync didn't complete successfully
-
-            threading.Thread(target=run_sync_thread, args=(app_ctx,)).start()
-
-            return response
-
-        else:
-            return response
+    register_sync_hook(
+        app, name="writeups", lock_key="writeups_sync_lock", sync=wwriteups.sync
+    )
